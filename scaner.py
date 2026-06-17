@@ -31,7 +31,6 @@ from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from typing import Optional
 
-# ── dep check ─────────────────────────────────────────────────────────────────
 try:
     import requests
     from requests.adapters import HTTPAdapter
@@ -58,9 +57,6 @@ except ImportError:
     sys.exit("[!] pip install rich colorama")
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# THEME
-# ══════════════════════════════════════════════════════════════════════════════
 
 P = {
     "v":  "#7C3AED",   # violet  — accent
@@ -81,9 +77,6 @@ def mkb(text, k):      return f"[{P[k]} bold]{text}[/{P[k]} bold]"
 def rule(title=""):    con.print(Rule(title, style=P["d"]))
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# DATA CLASSES
-# ══════════════════════════════════════════════════════════════════════════════
 
 @dataclass
 class SubResult:
@@ -109,49 +102,37 @@ class ScanSummary:
     found:       int    = 0;     results: list  = field(default_factory=list)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# SESSION STATE  — hamma konfiguratsiya shu yerda yashaydi
-# ══════════════════════════════════════════════════════════════════════════════
 
 @dataclass
 class SessionState:
-    # ── umumiy ──────────────────────────────────────────────────────────────
     target:   str  = ""
     mode:     str  = "port"          # subdomain | port | fuzz | full
 
-    # ── subdomain ───────────────────────────────────────────────────────────
     sub_wordlist: str  = ""          # bo'sh = built-in
     sub_threads:  int  = 50
     sub_timeout:  float = 2.5
 
-    # ── port ────────────────────────────────────────────────────────────────
     port_mode:    str   = "default"  # default | range | custom | full
     port_list:    str   = ""         # "80,443,22"
     port_range:   str   = "1-1024"
     port_threads: int   = 150
     port_timeout: float = 0.8
 
-    # ── fuzz ────────────────────────────────────────────────────────────────
     fuzz_scheme:   str   = "http"
     fuzz_wordlist: str   = ""
     fuzz_threads:  int   = 50
     fuzz_timeout:  float = 4.0
     fuzz_filter:   str   = "404"     # vergul bilan: "404,400"
 
-    # ── chiqish ─────────────────────────────────────────────────────────────
     output_fmt:   str   = "n"        # json | txt | n
     output_path:  str   = ""         # bo'sh = avtomatik nom
 
-    # ── joriy sessiya natijalar ──────────────────────────────────────────────
     history: list = field(default_factory=list)   # ScanSummary list
 
 
 ST = SessionState()   # global holat
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# ATOMIC COUNTER
-# ══════════════════════════════════════════════════════════════════════════════
 
 class AC:
     __slots__ = ("total","_c","_f","_l","_t")
@@ -174,9 +155,6 @@ class AC:
         e=self.elapsed; return self._c/e if e else 0
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# NETWORK UTILS
-# ══════════════════════════════════════════════════════════════════════════════
 
 UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
@@ -283,9 +261,6 @@ def _load_wl(path: str, default: list[str]) -> list[str]:
         return default
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# SCAN ENGINES
-# ══════════════════════════════════════════════════════════════════════════════
 
 def _make_progress(label: str, total: int):
     return Progress(
@@ -299,7 +274,6 @@ def _make_progress(label: str, total: int):
         console=con, transient=True,
     ), label, total
 
-# ─── SUBDOMAIN ────────────────────────────────────────────────────────────────
 
 def _sub_worker(sub, target, sess, counter, plock, progress, tid, table):
     fqdn = f"{sub}.{target}"
@@ -367,7 +341,6 @@ def run_subdomain(target, wordlist="", threads=50, timeout=2.5) -> ScanSummary:
     _scan_footer(ctr)
     return sm
 
-# ─── PORT ─────────────────────────────────────────────────────────────────────
 
 def _port_worker(host, port, timeout, ctr, plock, progress, tid, tbl):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -444,7 +417,6 @@ def run_ports(target, ports=None, port_range=None, threads=150, timeout=0.8) -> 
     _scan_footer(ctr)
     return sm
 
-# ─── FUZZ ─────────────────────────────────────────────────────────────────────
 
 def _fuzz_worker(base, path, sess, ctr, fc, plock, progress, tid, tbl):
     url = f"{base.rstrip('/')}/{path.lstrip('/')}"
@@ -518,9 +490,6 @@ def run_fuzz(target, wordlist="", threads=50, timeout=4.0,
     return sm
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# SCAN UI HELPERS
-# ══════════════════════════════════════════════════════════════════════════════
 
 def _scan_header(title: str, target: str, meta: dict) -> None:
     con.print()
@@ -541,9 +510,6 @@ def _scan_footer(ctr: AC) -> None:
     rule(); con.print()
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# REPORT
-# ══════════════════════════════════════════════════════════════════════════════
 
 def save_summary(sm: ScanSummary) -> str:
     fmt  = ST.output_fmt
@@ -565,9 +531,6 @@ def save_summary(sm: ScanSummary) -> str:
     return fname
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# TUI  INPUT HELPERS
-# ══════════════════════════════════════════════════════════════════════════════
 
 def inp(prompt: str, default: str = "", secret: bool = False) -> str:
     """Rangdor input. Ctrl-C = chiqish."""
@@ -599,9 +562,6 @@ def confirm(prompt: str) -> bool:
     return v in ("y","yes","ha","1")
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# MENU SECTIONS
-# ══════════════════════════════════════════════════════════════════════════════
 
 def _banner() -> None:
     art = (
@@ -681,7 +641,6 @@ def _main_menu() -> None:
             time.sleep(0.6)
 
 
-# ─── TARGET ───────────────────────────────────────────────────────────────────
 
 def _menu_target() -> None:
     con.clear(); _banner()
@@ -707,7 +666,6 @@ def _menu_target() -> None:
     time.sleep(1.2)
 
 
-# ─── MODE ─────────────────────────────────────────────────────────────────────
 
 def _menu_mode() -> None:
     con.clear(); _banner()
@@ -731,7 +689,6 @@ def _menu_mode() -> None:
         time.sleep(0.8)
 
 
-# ─── SUBDOMAIN SETTINGS ───────────────────────────────────────────────────────
 
 def _menu_sub_settings() -> None:
     while True:
@@ -755,7 +712,6 @@ def _menu_sub_settings() -> None:
         else: _bad()
 
 
-# ─── PORT SETTINGS ────────────────────────────────────────────────────────────
 
 def _menu_port_settings() -> None:
     while True:
@@ -807,7 +763,6 @@ def _menu_port_mode() -> None:
         time.sleep(0.7)
 
 
-# ─── FUZZ SETTINGS ────────────────────────────────────────────────────────────
 
 def _menu_fuzz_settings() -> None:
     while True:
@@ -838,7 +793,6 @@ def _menu_fuzz_settings() -> None:
         else: _bad()
 
 
-# ─── OUTPUT SETTINGS ──────────────────────────────────────────────────────────
 
 def _menu_output_settings() -> None:
     while True:
@@ -862,7 +816,6 @@ def _menu_output_settings() -> None:
         else: _bad()
 
 
-# ─── HISTORY ──────────────────────────────────────────────────────────────────
 
 def _menu_history() -> None:
     con.clear(); _banner()
@@ -898,9 +851,6 @@ def _menu_history() -> None:
             time.sleep(1.2)
 
 
-# ═════════════════════════════════════════════════════════════════════════════
-# SCAN DISPATCHER
-# ═════════════════════════════════════════════════════════════════════════════
 
 def _dispatch_scan() -> None:
     if not ST.target:
@@ -966,9 +916,6 @@ def _post_scan(sm: ScanSummary) -> None:
     con.print(f"  {mk('[✓]','g')} Saqlandi: {mk(fname,'w')}\n")
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# MISC HELPERS
-# ══════════════════════════════════════════════════════════════════════════════
 
 def _print_settings(rows: list) -> None:
     tbl = Table(box=box.SIMPLE_HEAD, border_style=P["d"],
@@ -988,10 +935,6 @@ def _bad() -> None:
 def _exit_app() -> None:
     con.print(f"\n  {mk('Chiqildi.','m')}\n"); sys.exit(0)
 
-
-# ══════════════════════════════════════════════════════════════════════════════
-# MAIN
-# ══════════════════════════════════════════════════════════════════════════════
 
 def main() -> None:
     try:
